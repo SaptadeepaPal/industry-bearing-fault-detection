@@ -2,9 +2,23 @@
 
 A machine learning pipeline that detects and classifies bearing faults (Normal, Ball, Inner Race, Outer Race) from raw vibration signals, using a custom-built multi-domain feature engineering pipeline (time-domain, FFT, and envelope analysis) on the CWRU Bearing Dataset.
 
-**Final selected model: XGBoost — 99.53% test accuracy, 99.50% macro F1, on a strictly leakage-free, group-based train/test split.**
+## Project Highlights
 
----
+- Built an end-to-end predictive maintenance pipeline from raw vibration signals to deployment.
+- Engineered 32 features across time, frequency, and envelope domains.
+- Identified and eliminated data leakage caused by overlapping signal windows using `GroupShuffleSplit`.
+- Achieved **99.53% test accuracy** and **99.50% macro F1** on a strict leakage-safe evaluation.
+- Deployed the selected XGBoost model as an interactive Streamlit application.
+
+**Streamlit Demo Link**
+https://industry-bearing-fault-detection-nwm9exqgcb3hibericinjm.streamlit.app/
+
+<img width="1892" height="907" alt="image" src="https://github.com/user-attachments/assets/e71fe26b-184d-4fcd-ac2a-4eea03f20f9c" />
+
+<img width="1912" height="915" alt="image" src="https://github.com/user-attachments/assets/2a4d3fe7-90e5-464e-a759-03fc30a1ffe1" />
+
+<img width="1841" height="786" alt="image" src="https://github.com/user-attachments/assets/54ddf15a-959c-48fe-bd7e-2aa7240540e4" />
+
 
 ## Why this project matters
 
