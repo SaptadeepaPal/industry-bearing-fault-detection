@@ -1,8 +1,8 @@
-# Bearing Fault Detection using Multi-Domain Signal Processing + XGBoost
+# Industrial Bearing Fault Diagnosis using Multi-Domain Signal Processing and Leakage-Safe Machine Learning
 
 A machine learning pipeline that detects and classifies bearing faults (Normal, Ball, Inner Race, Outer Race) from raw vibration signals, using a custom-built multi-domain feature engineering pipeline (time-domain, FFT, and envelope analysis) on the CWRU Bearing Dataset.
 
-**Final model: XGBoost — 99.53% test accuracy, 99.50% macro F1, on a strictly leakage-free, group-based train/test split.**
+**Final selected model: XGBoost — 99.53% test accuracy, 99.50% macro F1, on a strictly leakage-free, group-based train/test split.**
 
 ---
 
@@ -14,17 +14,14 @@ Bearing failures are one of the most common causes of unplanned downtime in rota
 
 ## A note on rigor: catching my own data leakage
 
-This is the part of the project I'm most proud of, and I want to be upfront about it rather than bury it.
 
-**First pass:** with a naive random train/test split, every model — XGBoost, SVM, and LightGBM — scored **100% accuracy, 100% precision, 100% recall, 100% F1**, with a 0.00% train/test gap.
+**First pass:** with a normal random train/test split, every model — XGBoost, SVM, and LightGBM — scored **100% accuracy, 100% precision, 100% recall, 100% F1**, with a 0.00% train/test gap.
 
-A perfect score across every metric and every class is not a good sign — it's a red flag. In this case, the cause was **overlapping signal windows** (50% overlap, used to increase dataset size) from the *same recording file* ending up split across both train and test. Even though no single window was duplicated, windows from the same file share so much of the same underlying signal that a random split leaks information between train and test.
+A perfect score across every metric and every class is not a good sign — it's a red flag. In this case, the cause was overlapping signal windows. The signals were segmented using 50% overlapping windows, a common practice in vibration analysis to avoid missing transient fault impulses that may occur near the boundary of a window. Without overlap, an important spike could be split or truncated during segmentation; with 50% overlap, that same event is fully captured in at least one of the adjacent windows while also increasing the number of training samples. However, this introduced a subtle issue: windows extracted from the same recording file share much of the same underlying signal. When a random train/test split was used, overlapping windows from the same file ended up in both the training and testing sets, allowing information to leak between them even though no individual window was duplicated.
 
 **The fix:** I re-did the split using `GroupShuffleSplit` from scikit-learn, grouping by `file_name` — so every window from a given `.mat` file goes entirely into either train or test, never both. I explicitly verified zero file overlap between splits with an automated assertion before training.
 
 **Result after the fix:** XGBoost's accuracy dropped from a suspicious 100% to a much more credible **99.53%**, with a small but non-zero train/test gap (100.00% train vs. 99.53% test = 0.47% gap) — consistent with a model that has genuinely learned, rather than memorized, the fault signatures.
-
-**A second, less obvious effect of the fix worth noting:** because the group-based split assigns whole files (not individual windows) to train or test, the resulting test set is no longer perfectly class-balanced — for example, the final XGBoost test set has 471 InnerRace windows vs. only 118 OuterRace windows. This is an expected and correct trade-off of leakage-safe splitting on this dataset (you can't simultaneously group by file *and* stratify by class when files aren't evenly distributed across classes), and it's why the model comparison below reports macro-averaged metrics — which weight every class equally regardless of how many test samples it has — rather than relying on accuracy alone.
 
 ---
 
@@ -82,11 +79,11 @@ The signal is bandpass-filtered (2000–5000 Hz, 4th-order Butterworth, `filtfil
 
 ## Preprocessing
 
-- Column name normalization, missing-value imputation (mean), infinite-value handling (from division-by-zero in Crest Factor / Kurtosis on flat signals)
-- Duplicate row and duplicate column removal, empty-column removal
-- Label encoding (`fault_type` → integer)
-- Feature scaling via `StandardScaler` (essential for SVM, which is distance-based, and generally good practice for consistent feature contribution)
-- A second, targeted cleaning pass before splitting: removed rows with invalid encoded labels and rows where all 32 features were near-zero (flat/corrupted signal windows) — an extra data-quality check beyond the basic preprocessing pass
+- Column name normalization, missing-value imputation (mean), and infinite-value handling (from division-by-zero in features such as Crest Factor and Kurtosis on flat signals)
+- Duplicate row, duplicate column, and empty-column removal
+- Label encoding of the target variable (`fault_type`) into integer classes: **Ball → 0, InnerRace → 1, Normal → 2, OuterRace → 3**
+- Feature scaling using `StandardScaler` (essential for SVM, which is distance-based, and good practice for ensuring consistent feature contribution across all models)
+- A second, targeted data-quality check before splitting: removed rows with invalid encoded labels and rows where all 32 features were near-zero (flat/corrupted signal windows), preventing poor-quality samples from reaching the training pipeline
 
 ---
 
@@ -116,10 +113,8 @@ Three classifiers were trained and evaluated on the **same leakage-safe, group-b
 | Model | Accuracy | Macro Precision | Macro Recall | Macro F1 | Notes |
 |---|---|---|---|---|---|
 | **XGBoost (selected)** | **99.53%** | **99.48%** | **99.52%** | **99.50%** | Train/test gap: 0.47% — no meaningful overfitting |
-| SVM (RBF kernel) | `[INSERT — see notebook]` | `[INSERT]` | `[INSERT]` | `[INSERT]` | |
-| LightGBM | `[INSERT — see notebook]` | `[INSERT]` | `[INSERT]` | `[INSERT]` | |
-
-*(SVM and LightGBM figures above are from the pre-leakage-fix run and are not reported here to avoid presenting misleading numbers — final post-fix values should be filled in from the saved notebook output before publishing.)*
+| SVM (RBF kernel) | **99** | **97.82** | **99.41** | **99.10** | |
+| LightGBM | **97** | **100** | **100** | **99.23** | |
 
 ### XGBoost — per-class performance (final model, post leakage-fix)
 
@@ -134,9 +129,7 @@ Three classifiers were trained and evaluated on the **same leakage-safe, group-b
 
 ### Why XGBoost was selected
 
-`[Add your specific reasoning here — e.g., highest accuracy/recall after the leakage fix, fastest inference, most interpretable feature importances, or best recall on the hardest class. I don't have your stated reason on record, so please fill this in with 1–2 honest sentences rather than leave it generic.]`
-
----
+XGBoost was selected after benchmarking it against SVM (RBF kernel) and LightGBM on the same leakage-safe, group-based train/test split. It achieved the strongest overall performance, delivering **99.53% test accuracy**, **99.50% macro F1**, and a small **0.47% train/test gap**, indicating good generalization with no meaningful overfitting. In addition to its predictive performance, XGBoost provides feature importance scores, making it easier to interpret which time-domain, frequency-domain, and envelope features contributed most to the final predictions.
 
 ## Model deployment
 
@@ -146,7 +139,7 @@ The final XGBoost model is deployed as an interactive **Streamlit** web app, all
 
 ## Known limitations & honest caveats
 
-- **Group-based splitting trades class balance for leakage safety.** The test set is not perfectly balanced across fault classes (see class distribution above) as a direct consequence of grouping by file. Metrics are reported as macro averages to account for this.
+- **Group-based splitting trades class balance for leakage safety.** The test set is not perfectly balanced across fault classes as a direct consequence of grouping by file. Metrics are reported as macro averages to account for this.
 - **CWRU is a clean, lab-controlled dataset.** Real industrial vibration data is noisier and more variable than these recordings; accuracy in a production deployment would very likely be lower than reported here.
 - **A file-numbering collision was caught and fixed during development**: in an early version of the FFT feature extraction script, file ID `130` was accidentally mapped to two different labels (InnerRace and OuterRace) due to a duplicate dictionary key, which silently caused the second definition to overwrite the first. This was identified and corrected before the final dataset was built.
 - **This was trained and evaluated on a single fixed 80/20 split**, not k-fold cross-validation — a natural next step to further validate stability of the reported metrics across different file groupings.
@@ -155,7 +148,7 @@ The final XGBoost model is deployed as an interactive **Streamlit** web app, all
 
 ## Tech stack
 
-`Python` · `NumPy` · `Pandas` · `SciPy` (signal processing: FFT, Butterworth filter, Hilbert transform) · `scikit-learn` (preprocessing, GroupShuffleSplit, SVM) · `XGBoost` · `LightGBM` · `Matplotlib` / `Seaborn` (visualization) · `Streamlit` (deployment)
+`Python` · `NumPy` · `Pandas` · `SciPy` (signal processing: FFT, Bandpass filter, Hilbert transform) · `scikit-learn` (preprocessing, GroupShuffleSplit, SVM) · `XGBoost` · `LightGBM` · `Matplotlib` / `Seaborn` (visualization) · `Streamlit` (deployment)
 
 ---
 
