@@ -145,6 +145,10 @@ Three classifiers were trained and evaluated on the **same leakage-safe, group-b
 
 XGBoost was selected after benchmarking it against SVM (RBF kernel) and LightGBM on the same leakage-safe, group-based train/test split. It achieved the strongest overall performance, delivering **99.53% test accuracy**, **99.50% macro F1**, and a small **0.47% train/test gap**, indicating good generalization with no meaningful overfitting. In addition to its predictive performance, XGBoost provides feature importance scores, making it easier to interpret which time-domain, frequency-domain, and envelope features contributed most to the final predictions.
 
+<img width="737" height="555" alt="image" src="https://github.com/user-attachments/assets/39370ec0-f4b3-4f92-b872-b793d3e8abf4" />
+
+<img width="1337" height="725" alt="image" src="https://github.com/user-attachments/assets/da1c0e58-833e-4047-91e1-5b2f9bde3f44" />
+
 ## Model deployment
 
 The final XGBoost model is deployed as an interactive **Streamlit** web app, allowing a user to upload/select signal data and receive a real-time fault classification.
