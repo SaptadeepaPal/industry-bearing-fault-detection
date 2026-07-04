@@ -15,9 +15,9 @@ https://industry-bearing-fault-detection-nwm9exqgcb3hibericinjm.streamlit.app/
 
 <img width="1892" height="907" alt="image" src="https://github.com/user-attachments/assets/e71fe26b-184d-4fcd-ac2a-4eea03f20f9c" />
 
-<img width="1912" height="915" alt="image" src="https://github.com/user-attachments/assets/2a4d3fe7-90e5-464e-a759-03fc30a1ffe1" />
+<img width="1896" height="922" alt="image" src="https://github.com/user-attachments/assets/5bdd72d7-0d03-4104-b5fa-dd53a9b19585" />
 
-<img width="1841" height="786" alt="image" src="https://github.com/user-attachments/assets/54ddf15a-959c-48fe-bd7e-2aa7240540e4" />
+<img width="1900" height="596" alt="image" src="https://github.com/user-attachments/assets/68f5c9ae-d61e-4631-b27d-f481d55d2a7b" />
 
 
 ## Why this project matters
